@@ -1,3 +1,3 @@
-# Open Useful ScripT
-Hello ! Welcome to Open Useful ScripT (OpenUST)!<br>
+# Open Useful script
+Hello ! Welcome to Open Useful ScripT (OpenUst)!<br>
 
