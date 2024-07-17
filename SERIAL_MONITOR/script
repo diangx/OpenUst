@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# List available serial devices
+serial_devices=($(ls /dev/cu.usb*))
+
+echo "Available serial devices:"
+for i in "${!serial_devices[@]}"; do
+  echo "$i) ${serial_devices[$i]}"
+done
+
+# Prompt user to select a device
+read -p "Select a serial device by number: " device_index
+
+# Validate input
+if [[ ! $device_index =~ ^[0-9]+$ ]] || [ $device_index -ge ${#serial_devices[@]} ]; then
+  echo "Invalid selection."
+  exit 1
+fi
+
+# Get the selected device
+selected_device=${serial_devices[$device_index]}
+
+# Run screen with the selected device
+screen -L $selected_device 115200 -L
