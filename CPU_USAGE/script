@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# Calculate the number of CPU cores
+num_cores=$(grep -c ^processor /proc/cpuinfo)
+
+# Get load average values
+load_1_min=$(awk '{print $1}' /proc/loadavg)
+load_5_min=$(awk '{print $2}' /proc/loadavg)
+load_15_min=$(awk '{print $3}' /proc/loadavg)
+
+# Calculate percentage using awk
+load_1_min_percent=$(awk -v load="$load_1_min" -v cores="$num_cores" 'BEGIN { printf "%.2f", (load / cores) * 100 }')
+load_5_min_percent=$(awk -v load="$load_5_min" -v cores="$num_cores" 'BEGIN { printf "%.2f", (load / cores) * 100 }')
+load_15_min_percent=$(awk -v load="$load_15_min" -v cores="$num_cores" 'BEGIN { printf "%.2f", (load / cores) * 100 }')
+
+# Output results
+echo "Number of CPU cores: $num_cores"
+echo "Last 1 minute: $load_1_min_percent%"
+echo "Last 5 minutes: $load_5_min_percent%"
+echo "Last 15 minutes: $load_15_min_percent%"
