@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# if use tr in macOS 
+export LC_CTYPE=C
+
+# random key generate
+CAPTCHA=$(head /dev/urandom | tr -dc 'a-z' | head -c 5)
+
+# image file path 
+IMAGE_PATH="captcha.png"
+
+# image create 
+convert -size 250x150 xc:white \
+    -gravity Center \
+    -font Arial -pointsize 51 -fill black \
+    -draw "text 0,15 '$CAPTCHA'" \
+    -stroke black -strokewidth 5 \
+    -draw "line $(($RANDOM % 250)),$(($RANDOM % 150)) $(($RANDOM % 250)),$(($RANDOM % 150))" \
+    -draw "line $(($RANDOM % 250)),$(($RANDOM % 150)) $(($RANDOM % 250)),$(($RANDOM % 150))" \
+    $IMAGE_PATH
+
+echo "CAPTCHA image generated at: $IMAGE_PATH"
