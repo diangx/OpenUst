@@ -1,0 +1,14 @@
+#!/bin/sh
+
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <session_id>"
+    exit 1
+fi
+
+SESSION_ID="$1"
+
+if ubus call session list | grep -o '"ubus_rpc_session": "[^"]*"' | grep -q "^\"ubus_rpc_session\": \"$SESSION_ID\"$" && [ "$SESSION_ID" != "00000000000000000000000000000000" ]; then
+    echo 1
+else
+    echo 0
+fi
