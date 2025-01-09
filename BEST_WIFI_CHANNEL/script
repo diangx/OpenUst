@@ -1,0 +1,88 @@
+#!/bin/sh
+
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <interface>"
+    exit 1
+fi
+
+INTERFACE=$1
+shift
+# SELECTED_CHANNELS="$@"
+
+SELECTED_CHANNELS=
+if [ "Xath0" == "X$INTERFACE" ]; then
+	SELECTED_CHANNELS=$(uci -q get test.config.wifi2_sel_channel)
+elif [ "Xath1" == "X$INTERFACE" ]; then
+	SELECTED_CHANNELS=$(uci -q get test.config.wifi5_sel_channel)
+fi
+
+if [ -z "$SELECTED_CHANNELS" ] || [ "$SELECTED_CHANNELS" = "none" ]; then
+    echo "Error: SELECTED_CHANNELS is empty or set to 'none'."
+    exit 1
+fi
+
+echo "Interface: $INTERFACE"
+echo "Selected channels: $SELECTED_CHANNELS"
+echo "Scanning wireless networks on interface: $INTERFACE"
+
+check_conditions() {
+    iwinfo_output=$(iwinfo "$INTERFACE" info 2>/dev/null)
+    essid=$(echo "$iwinfo_output" | awk -F': ' '/ESSID/ {print $2}' | tr -d '"')
+    access_point=$(echo "$iwinfo_output" | awk -F': ' '/Access Point/ {print $2}')
+    if [[ "$essid" != "unknown" && "$access_point" != "00:00:00:00:00:00" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+start_time=$(date +%s)
+while true; do
+    if check_conditions; then
+        echo "Proceeding to the next step."
+        break
+    fi
+    current_time=$(date +%s)
+    elapsed_time=$((current_time - start_time))
+    if ((elapsed_time >= 120)); then
+        echo "Timeout"
+        exit 1
+    fi
+    sleep 5
+done
+
+SCAN_RESULTS=$(iwlist $INTERFACE scanning | awk '/Channel/ {ch=$NF} /Signal level/ {print ch, $3}' | sed 's/level=//;s/)//;s/(Channel//')
+
+BEST_CHANNEL=""
+BEST_SIGNAL=-1000
+
+for CHANNEL in $SELECTED_CHANNELS; do
+    SIGNAL=$(echo "$SCAN_RESULTS" | awk -v ch="$CHANNEL" '$1 == ch {print $2}' | sort -n | tail -n1)
+
+    if [ -n "$SIGNAL" ]; then
+        if [ "$SIGNAL" -gt "$BEST_SIGNAL" ]; then
+            BEST_SIGNAL="$SIGNAL"
+            BEST_CHANNEL="$CHANNEL"
+        fi
+    else
+        echo "Channel $CHANNEL not found in scan results."
+    fi
+done
+
+if [ -n "$BEST_CHANNEL" ]; then
+    echo "Best channel: $BEST_CHANNEL (Signal strength: $BEST_SIGNAL)"
+    # /usr/sbin/iwconfig $INTERFACE channel $BEST_CHANNEL &
+
+    if [ "Xath0" == "X$INTERFACE" ]; then
+		/usr/sbin/iwconfig ath0 channel $BEST_CHANNEL 2>/dev/null &
+		/usr/sbin/iwconfig ath01 channel $BEST_CHANNEL 2>/dev/null &
+		/usr/sbin/iwconfig ath02 channel $BEST_CHANNEL 2>/dev/null &
+    elif [ "Xath1" == "X$INTERFACE" ]; then
+		/usr/sbin/iwconfig ath1 channel $BEST_CHANNEL 2>/dev/null &
+		/usr/sbin/iwconfig ath11 channel $BEST_CHANNEL 2>/dev/null &
+		/usr/sbin/iwconfig ath12 channel $BEST_CHANNEL 2>/dev/null &
+		/usr/sbin/iwconfig ath13 channel $BEST_CHANNEL 2>/dev/null &
+    fi
+else
+    echo "No valid channels found in scan results."
+fi
